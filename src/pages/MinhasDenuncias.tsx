@@ -40,7 +40,7 @@ export default function MinhasDenuncias() {
 
   const carregarDenuncias = async () => {
     try {
-      const { data } = await api.get('/denuncias');
+      const { data } = await api.get('/denuncias/fila');
       const minhas = data.filter((d: Denuncia) => d.usuario_id === usuario?.id);
       setDenuncias(minhas);
       setFilteredDenuncias(minhas);
@@ -88,7 +88,7 @@ export default function MinhasDenuncias() {
     return labels[status] || status;
   };
 
-  const getGravidadeLabel = (gravidade?: number) => {
+  const getPrioridadeLabel = (gravidade?: number) => {
     const labels: Record<number, string> = {
       1: 'Baixa',
       2: 'Média',
@@ -96,18 +96,18 @@ export default function MinhasDenuncias() {
       4: 'Urgente',
       5: 'Crítica',
     };
-    return labels[gravidade || 1] || 'Média';
+    return labels[gravidade || 1] || 'Baixa';
   };
 
-  const getGravidadeColor = (gravidade?: number) => {
+  const getPrioridadeColor = (gravidade?: number) => {
     const cores: Record<number, string> = {
-      1: 'bg-green-100 text-green-800',
-      2: 'bg-yellow-100 text-yellow-800',
-      3: 'bg-orange-100 text-orange-800',
-      4: 'bg-red-100 text-red-800',
-      5: 'bg-red-200 text-red-900',
+      1: 'bg-green-100 text-green-800 border-green-300',
+      2: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+      3: 'bg-orange-100 text-orange-800 border-orange-300',
+      4: 'bg-red-100 text-red-800 border-red-300',
+      5: 'bg-red-200 text-red-900 border-red-400',
     };
-    return cores[gravidade || 1] || 'bg-gray-100 text-gray-800';
+    return cores[gravidade || 1] || 'bg-gray-100 text-gray-800 border-gray-300';
   };
 
   const getCategoriaNome = (tipo?: { nome: string } | null, tipoId?: number) => {
@@ -258,8 +258,8 @@ export default function MinhasDenuncias() {
                     <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusBg(denuncia.status)}`}>
                       {getStatusLabel(denuncia.status)}
                     </span>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getGravidadeColor(denuncia.gravidade)}`}>
-                      {getGravidadeLabel(denuncia.gravidade)}
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPrioridadeColor(denuncia.gravidade)}`}>
+                      {getPrioridadeLabel(denuncia.gravidade)}
                     </span>
                   </div>
 

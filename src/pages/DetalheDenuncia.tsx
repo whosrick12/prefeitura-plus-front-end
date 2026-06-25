@@ -2,13 +2,17 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import { MapPin, User, Calendar, Building2, ChevronLeft, ImageIcon } from 'lucide-react';
+import { MapPin, User, Calendar, Building2, ChevronLeft, ImageIcon, CheckCircle, Shield } from 'lucide-react';
 
 interface Denuncia {
   id: number;
   titulo: string;
   descricao: string;
   local: string;
+  cidade: string;
+  bairro: string;
+  rua: string;
+  numero: string;
   status: string;
   created_at: string;
   usuario_id: number;
@@ -27,6 +31,9 @@ export default function DetalheDenuncia() {
   const [denuncia, setDenuncia] = useState<Denuncia | null>(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState('');
+  const [concluindo, setConcluindo] = useState(false);
+
+  const isAdmin = usuario?.papel === 'admin' || usuario?.papel === 'funcionario';
 
   useEffect(() => {
     carregarDenuncia();
@@ -47,6 +54,23 @@ export default function DetalheDenuncia() {
       setErro('Erro ao carregar denúncia');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const marcarComoConcluido = async () => {
+    if (!confirm('Marcar esta denúncia como concluída?')) return;
+    
+    setConcluindo(true);
+    try {
+      await api.patch(`/denuncias/${id}/status`, {
+        status: 'resolvido'
+      });
+      carregarDenuncia();
+    } catch (error) {
+      console.error('Erro ao marcar como concluído:', error);
+      alert('Erro ao marcar denúncia como concluída.');
+    } finally {
+      setConcluindo(false);
     }
   };
 
@@ -133,6 +157,13 @@ export default function DetalheDenuncia() {
     );
   }
 
+  const enderecoCompleto = [
+    denuncia.rua,
+    denuncia.numero,
+    denuncia.bairro,
+    denuncia.cidade
+  ].filter(Boolean).join(', ');
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
@@ -179,7 +210,7 @@ export default function DetalheDenuncia() {
                 <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex items-center gap-3 text-sm text-gray-500">
                     <MapPin className="w-5 h-5 text-gray-400" />
-                    <span>{denuncia.local}</span>
+                    <span>{enderecoCompleto || denuncia.local || 'Endereço não informado'}</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm text-gray-500">
                     <User className="w-5 h-5 text-gray-400" />
@@ -194,6 +225,27 @@ export default function DetalheDenuncia() {
                     <span>Obras Públicas</span>
                   </div>
                 </div>
+
+                {denuncia.cidade && (
+                  <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
+                    <div>
+                      <span className="text-gray-400">Cidade</span>
+                      <p className="text-gray-700 font-medium">{denuncia.cidade}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Bairro</span>
+                      <p className="text-gray-700 font-medium">{denuncia.bairro || '-'}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Rua</span>
+                      <p className="text-gray-700 font-medium">{denuncia.rua || '-'}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Número</span>
+                      <p className="text-gray-700 font-medium">{denuncia.numero || '-'}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -205,7 +257,7 @@ export default function DetalheDenuncia() {
               <div className="space-y-4">
                 <div>
                   <p className="text-xs text-gray-400">Localização</p>
-                  <p className="text-sm text-gray-700">{denuncia.local}</p>
+                  <p className="text-sm text-gray-700">{enderecoCompleto || denuncia.local || 'Não informado'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-400">Denunciante</p>
@@ -229,6 +281,36 @@ export default function DetalheDenuncia() {
                 <span className="text-sm font-medium text-gray-700">{getStatusLabel(denuncia.status)}</span>
               </div>
             </div>
+
+            {isAdmin && denuncia.status !== 'resolvido' && (
+              <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-green-200">
+                <h3 className="text-sm font-semibold text-green-600 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <Shield className="w-4 h-4" />
+                  Ação Administrativa
+                </h3>
+                <button
+                  onClick={marcarComoConcluido}
+                  disabled={concluindo}
+                  className="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-3 px-4 rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <CheckCircle className="w-5 h-5" />
+                  {concluindo ? 'Processando...' : '✅ Marcar como Concluído'}
+                </button>
+                <p className="text-xs text-gray-400 mt-2 text-center">
+                  Esta ação só está disponível para administradores
+                </p>
+              </div>
+            )}
+
+            {isAdmin && denuncia.status === 'resolvido' && (
+              <div className="bg-green-50 rounded-2xl shadow-lg p-6 border border-green-200">
+                <div className="flex items-center gap-3 text-green-700">
+                  <CheckCircle className="w-6 h-6" />
+                  <span className="font-medium">Esta denúncia já foi concluída</span>
+                </div>
+                <p className="text-xs text-green-600 mt-2">Ação já realizada por um administrador.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

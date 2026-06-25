@@ -14,7 +14,6 @@ export default function NovaDenuncia() {
   const [descricao, setDescricao] = useState('');
   const [local, setLocal] = useState('');
   const [categoria, setCategoria] = useState('');
-  const [gravidade, setGravidade] = useState(1);
   const [anonimo, setAnonimo] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,7 +28,6 @@ export default function NovaDenuncia() {
         descricao,
         endereco_denuncia: local,
         tipo_denuncia_id: parseInt(categoria),
-        gravidade,
         anonimo,
         usuario_id: anonimo ? null : usuario?.id
       };
@@ -46,17 +44,6 @@ export default function NovaDenuncia() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const getGravidadeLabel = (value: number) => {
-    const labels: Record<number, string> = {
-      1: 'Baixa',
-      2: 'Média',
-      3: 'Alta',
-      4: 'Urgente',
-      5: 'Crítica'
-    };
-    return labels[value] || 'Baixa';
   };
 
   return (
@@ -124,26 +111,6 @@ export default function NovaDenuncia() {
                 <option value="4">Poda</option>
                 <option value="5">Outro</option>
               </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Prioridade <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={gravidade}
-                onChange={(e) => setGravidade(Number(e.target.value))}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              >
-                <option value={1}>Baixa</option>
-                <option value={2}>Média</option>
-                <option value={3}>Alta</option>
-                <option value={4}>Urgente</option>
-                <option value={5}>Crítica</option>
-              </select>
-              <p className="text-xs text-gray-400 mt-1">
-                Prioridade atual: <span className="font-medium">{getGravidadeLabel(gravidade)}</span>
-              </p>
             </div>
 
             <div>

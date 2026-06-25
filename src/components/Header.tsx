@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Menu, X, Home, FileText, Users, LogOut, User, PlusCircle, BarChart3 } from 'lucide-react';
+import { Menu, X, Home, FileText, Users, LogOut, User, PlusCircle, BarChart3, Shield, UserCheck } from 'lucide-react';
 
 export default function Header() {
   const { usuario, logout } = useAuth();
@@ -14,6 +14,19 @@ export default function Header() {
   };
 
   const isAdmin = usuario?.papel === 'admin' || usuario?.papel === 'funcionario';
+
+  const getRoleLabel = () => {
+    if (usuario?.papel === 'admin') return 'Admin';
+    if (usuario?.papel === 'funcionario') return 'Funcionário';
+    return 'Cidadão';
+  };
+
+  const getRoleIcon = () => {
+    if (usuario?.papel === 'admin' || usuario?.papel === 'funcionario') {
+      return <Shield className="w-4 h-4" />;
+    }
+    return <UserCheck className="w-4 h-4" />;
+  };
 
   const navItems = [
     { nome: 'Início', icone: Home, path: '/' },
@@ -56,12 +69,9 @@ export default function Header() {
           <div className="flex items-center gap-3">
             <div className="hidden md:flex items-center gap-3">
               <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-full border border-gray-200">
-                <User className="w-4 h-4 text-gray-400" />
+                {getRoleIcon()}
                 <span className="text-sm font-medium text-gray-700">
-                  {usuario?.nome}
-                  {isAdmin && (
-                    <span className="ml-2 text-xs text-primary font-semibold">(Admin)</span>
-                  )}
+                  {getRoleLabel()}
                 </span>
               </div>
               <button
@@ -106,11 +116,8 @@ export default function Header() {
           </Link>
           <div className="pt-2 border-t border-gray-200">
             <div className="flex items-center gap-3 px-4 py-2.5 text-gray-600">
-              <User className="w-5 h-5" />
-              <span className="font-medium">{usuario?.nome}</span>
-              {isAdmin && (
-                <span className="text-xs text-primary font-semibold">(Admin)</span>
-              )}
+              {getRoleIcon()}
+              <span className="font-medium">{getRoleLabel()}</span>
             </div>
             <button
               onClick={handleLogout}

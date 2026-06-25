@@ -50,6 +50,7 @@ export default function DashboardEstatisticas() {
   const [denuncias, setDenuncias] = useState<Denuncia[]>([]);
   const [modalAberto, setModalAberto] = useState(false);
   const [busca, setBusca] = useState('');
+  const [filterStatus, setFilterStatus] = useState('todos');
   const [denunciasFiltradas, setDenunciasFiltradas] = useState<Denuncia[]>([]);
 
   useEffect(() => {
@@ -63,26 +64,16 @@ export default function DashboardEstatisticas() {
   }, []);
 
   useEffect(() => {
-    if (busca.trim() === '') {
-      setDenunciasFiltradas(denuncias);
-    } else {
-      const term = busca.toLowerCase();
-      const filtradas = denuncias.filter(d => 
-        d.titulo.toLowerCase().includes(term) ||
-        d.descricao.toLowerCase().includes(term) ||
-        d.local.toLowerCase().includes(term) ||
-        d.usuario?.nome?.toLowerCase().includes(term) ||
-        d.tipo_denuncia?.nome?.toLowerCase().includes(term)
-      );
-      setDenunciasFiltradas(filtradas);
+    if (modalAberto) {
+      filtrarDenuncias();
     }
-  }, [busca, denuncias]);
+  }, [busca, filterStatus, denuncias, modalAberto]);
 
   const carregarDados = async () => {
     try {
       const [estatisticasRes, denunciasRes] = await Promise.all([
         api.get('/denuncias/estatisticas'),
-        api.get('/denuncias')
+        api.get('/denuncias/fila')
       ]);
 
       setEstatisticas(estatisticasRes.data);
@@ -96,6 +87,22 @@ export default function DashboardEstatisticas() {
     }
   };
 
+  const filtrarDenuncias = () => {
+    let filtradas = [...denuncias];
+    if (filterStatus !== 'todos') {
+      filtradas = filtradas.filter(d => d.status === filterStatus);
+    }
+    if (busca.trim()) {
+      const term = busca.toLowerCase();
+      filtradas = filtradas.filter(d =>
+        d.titulo.toLowerCase().includes(term) ||
+        d.descricao.toLowerCase().includes(term) ||
+        d.local.toLowerCase().includes(term)
+      );
+    }
+    setDenunciasFiltradas(filtradas);
+  };
+
   const getStatusBg = (status: string) => {
     const cores: Record<string, string> = {
       pendente: 'bg-yellow-100 text-yellow-800 border-yellow-300',
@@ -107,23 +114,45 @@ export default function DashboardEstatisticas() {
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
-      pendente: '⏳ Pendente',
-      em_andamento: '🔄 Em Andamento',
-      resolvido: '✅ Resolvido',
+      pendente: 'Pendente',
+      em_andamento: 'Em Andamento',
+      resolvido: 'Resolvido',
     };
     return labels[status] || status;
+  };
+
+  const getPrioridadeLabel = (gravidade?: number) => {
+    const labels: Record<number, string> = {
+      1: 'Baixa',
+      2: 'Média',
+      3: 'Alta',
+      4: 'Urgente',
+      5: 'Crítica',
+    };
+    return labels[gravidade || 1] || 'Baixa';
+  };
+
+  const getPrioridadeColor = (gravidade?: number) => {
+    const cores: Record<number, string> = {
+      1: 'bg-green-100 text-green-800 border-green-300',
+      2: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+      3: 'bg-orange-100 text-orange-800 border-orange-300',
+      4: 'bg-red-100 text-red-800 border-red-300',
+      5: 'bg-red-200 text-red-900 border-red-400',
+    };
+    return cores[gravidade || 1] || 'bg-gray-100 text-gray-800 border-gray-300';
   };
 
   const getCategoriaNome = (tipo?: { nome: string } | null, tipoId?: number) => {
     if (tipo?.nome) return tipo.nome;
     const nomes: Record<number, string> = {
-      1: '🕳️ Buraco',
-      2: '💡 Iluminação',
-      3: '🗑️ Lixo',
-      4: '🌳 Poda',
-      5: '📝 Outro',
+      1: 'Buraco',
+      2: 'Iluminação',
+      3: 'Lixo',
+      4: 'Poda',
+      5: 'Outro',
     };
-    return nomes[tipoId || 0] || '📌 Sem categoria';
+    return nomes[tipoId || 0] || 'Sem categoria';
   };
 
   const getCategoriaColor = (tipoId?: number) => {
@@ -148,6 +177,16 @@ export default function DashboardEstatisticas() {
     if (diff < 30) return `há ${Math.floor(diff / 7)} semanas`;
     if (diff < 365) return `há ${Math.floor(diff / 30)} meses`;
     return `há ${Math.floor(diff / 365)} anos`;
+  };
+
+  const formatarDataCompleta = (data: string) => {
+    return new Date(data).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   const truncarTexto = (texto: string, max: number = 100) => {
@@ -309,33 +348,35 @@ export default function DashboardEstatisticas() {
                     onClick={() => navigate(`/denuncia/${denuncia.id}`)}
                   >
                     <div className="flex flex-col gap-2">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-wrap items-center gap-2">
                         <h4 className="text-base font-semibold text-gray-800 group-hover:text-primary transition">
                           {denuncia.titulo}
                         </h4>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusBg(denuncia.status)}`}>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusBg(denuncia.status)}`}>
                           {getStatusLabel(denuncia.status)}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getPrioridadeColor(denuncia.gravidade)}`}>
+                          {getPrioridadeLabel(denuncia.gravidade)}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getCategoriaColor(denuncia.tipo_denuncia_id)}`}>
+                          {getCategoriaNome(denuncia.tipo_denuncia, denuncia.tipo_denuncia_id)}
                         </span>
                       </div>
                       
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-600 line-clamp-2">
                         {truncarTexto(denuncia.descricao, 120)}
                       </p>
                       
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-                        <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full border ${getCategoriaColor(denuncia.tipo_denuncia_id)}`}>
-                          <Tag className="w-3 h-3" />
-                          {getCategoriaNome(denuncia.tipo_denuncia, denuncia.tipo_denuncia_id)}
-                        </span>
-                        <span className="flex items-center gap-1 text-gray-500">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+                        <span className="flex items-center gap-1">
                           <MapPin className="w-3 h-3" />
                           {denuncia.local}
                         </span>
-                        <span className="flex items-center gap-1 text-gray-500">
+                        <span className="flex items-center gap-1">
                           <User className="w-3 h-3" />
                           {denuncia.anonimo ? '🕵️ Anônimo' : denuncia.usuario?.nome || 'Usuário'}
                         </span>
-                        <span className="flex items-center gap-1 text-gray-400">
+                        <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
                           {formatarData(denuncia.created_at)}
                         </span>
@@ -395,6 +436,48 @@ export default function DashboardEstatisticas() {
                   </button>
                 )}
               </div>
+              <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
+                <button
+                  onClick={() => setFilterStatus('todos')}
+                  className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition ${
+                    filterStatus === 'todos'
+                      ? 'bg-primary text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Todos
+                </button>
+                <button
+                  onClick={() => setFilterStatus('pendente')}
+                  className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition ${
+                    filterStatus === 'pendente'
+                      ? 'bg-yellow-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Pendentes
+                </button>
+                <button
+                  onClick={() => setFilterStatus('em_andamento')}
+                  className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition ${
+                    filterStatus === 'em_andamento'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Em andamento
+                </button>
+                <button
+                  onClick={() => setFilterStatus('resolvido')}
+                  className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition ${
+                    filterStatus === 'resolvido'
+                      ? 'bg-green-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Resolvidos
+                </button>
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -413,40 +496,40 @@ export default function DashboardEstatisticas() {
                       navigate(`/denuncia/${denuncia.id}`);
                     }}
                   >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="text-sm font-semibold text-gray-800">
-                            {denuncia.titulo}
-                          </h4>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusBg(denuncia.status)}`}>
-                            {getStatusLabel(denuncia.status)}
-                          </span>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getCategoriaColor(denuncia.tipo_denuncia_id)}`}>
-                            {getCategoriaNome(denuncia.tipo_denuncia, denuncia.tipo_denuncia_id)}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                          {denuncia.descricao}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-gray-400">
-                          <span className="flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
-                            {denuncia.local}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <User className="w-3 h-3" />
-                            {denuncia.anonimo ? '🕵️ Anônimo' : denuncia.usuario?.nome || 'Usuário'}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {formatarData(denuncia.created_at)}
-                          </span>
-                          <span className="text-gray-300">•</span>
-                          <span className="text-gray-400">#{String(denuncia.id).padStart(4, '0')}</span>
-                        </div>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h4 className="text-sm font-semibold text-gray-800">
+                          {denuncia.titulo}
+                        </h4>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusBg(denuncia.status)}`}>
+                          {getStatusLabel(denuncia.status)}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getPrioridadeColor(denuncia.gravidade)}`}>
+                          {getPrioridadeLabel(denuncia.gravidade)}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getCategoriaColor(denuncia.tipo_denuncia_id)}`}>
+                          {getCategoriaNome(denuncia.tipo_denuncia, denuncia.tipo_denuncia_id)}
+                        </span>
                       </div>
-                      <ChevronDown className="w-5 h-5 text-gray-300 flex-shrink-0" />
+                      <p className="text-sm text-gray-600 line-clamp-2">
+                        {denuncia.descricao}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          {denuncia.local}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <User className="w-3 h-3" />
+                          {denuncia.anonimo ? '🕵️ Anônimo' : denuncia.usuario?.nome || 'Usuário'}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {formatarData(denuncia.created_at)}
+                        </span>
+                        <span className="text-gray-300">•</span>
+                        <span className="text-gray-400">#{String(denuncia.id).padStart(4, '0')}</span>
+                      </div>
                     </div>
                   </div>
                 ))
@@ -455,14 +538,12 @@ export default function DashboardEstatisticas() {
 
             <div className="px-6 py-3 border-t border-gray-200 bg-gray-50 flex justify-between text-xs text-gray-400">
               <span>{denunciasFiltradas.length} denúncias encontradas</span>
-              <span className="flex items-center gap-2">
-                <button
-                  onClick={() => setModalAberto(false)}
-                  className="text-primary hover:underline"
-                >
-                  Fechar
-                </button>
-              </span>
+              <button
+                onClick={() => setModalAberto(false)}
+                className="text-primary hover:underline"
+              >
+                Fechar
+              </button>
             </div>
           </div>
         </div>
