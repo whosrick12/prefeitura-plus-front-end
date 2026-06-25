@@ -5,6 +5,10 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
 import NovaDenuncia from './pages/NovaDenuncia';
+import DetalheDenuncia from './pages/DetalheDenuncia';
+import MinhasDenuncias from './pages/MinhasDenuncias';
+import DashboardEstatisticas from './pages/DashboardEstatisticas';
+import AdminRoute from './components/AdminRoute';
 import Header from './components/Header';
 
 function AppRoutes() {
@@ -26,6 +30,16 @@ function AppRoutes() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/nova-denuncia" element={<NovaDenuncia />} />
+        <Route path="/denuncia/:id" element={<DetalheDenuncia />} />
+        <Route path="/minhas-denuncias" element={<MinhasDenuncias />} />
+        <Route 
+          path="/dashboard" 
+          element={
+            <AdminRoute>
+              <DashboardEstatisticas />
+            </AdminRoute>
+          } 
+        />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </>

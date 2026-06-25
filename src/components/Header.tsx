@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Menu, X, Home, FileText, Users, LogOut, User } from 'lucide-react';
+import { Menu, X, Home, FileText, Users, LogOut, User, PlusCircle, BarChart3 } from 'lucide-react';
 
 export default function Header() {
   const { usuario, logout } = useAuth();
   const navigate = useNavigate();
-  const [menuAberto, setMenuAberto] = useState(false);
   const [mobileMenuAberto, setMobileMenuAberto] = useState(false);
 
   const handleLogout = () => {
@@ -14,11 +13,16 @@ export default function Header() {
     navigate('/login');
   };
 
+  const isAdmin = usuario?.papel === 'admin' || usuario?.papel === 'funcionario';
+
   const navItems = [
     { nome: 'Início', icone: Home, path: '/' },
-    { nome: 'Denúncias', icone: FileText, path: '/minhas-denuncias' },
-    { nome: 'Diretório', icone: Users, path: '/diretorio' },
+    { nome: 'Minhas Denúncias', icone: FileText, path: '/minhas-denuncias' },
   ];
+
+  if (isAdmin) {
+    navItems.push({ nome: 'Dashboard', icone: BarChart3, path: '/dashboard' });
+  }
 
   return (
     <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
@@ -40,13 +44,25 @@ export default function Header() {
                 {item.nome}
               </Link>
             ))}
+            <Link
+              to="/nova-denuncia"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-blue-700 rounded-lg transition ml-2"
+            >
+              <PlusCircle className="w-4 h-4" />
+              Nova
+            </Link>
           </nav>
 
           <div className="flex items-center gap-3">
             <div className="hidden md:flex items-center gap-3">
               <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-full border border-gray-200">
                 <User className="w-4 h-4 text-gray-400" />
-                <span className="text-sm font-medium text-gray-700">{usuario?.nome || 'Usuário'}</span>
+                <span className="text-sm font-medium text-gray-700">
+                  {usuario?.nome}
+                  {isAdmin && (
+                    <span className="ml-2 text-xs text-primary font-semibold">(Admin)</span>
+                  )}
+                </span>
               </div>
               <button
                 onClick={handleLogout}
@@ -80,10 +96,21 @@ export default function Header() {
               {item.nome}
             </Link>
           ))}
+          <Link
+            to="/nova-denuncia"
+            className="flex items-center gap-3 px-4 py-2.5 text-white bg-primary hover:bg-blue-700 rounded-lg transition"
+            onClick={() => setMobileMenuAberto(false)}
+          >
+            <PlusCircle className="w-5 h-5" />
+            Nova Denúncia
+          </Link>
           <div className="pt-2 border-t border-gray-200">
             <div className="flex items-center gap-3 px-4 py-2.5 text-gray-600">
               <User className="w-5 h-5" />
-              <span className="font-medium">{usuario?.nome || 'Usuário'}</span>
+              <span className="font-medium">{usuario?.nome}</span>
+              {isAdmin && (
+                <span className="text-xs text-primary font-semibold">(Admin)</span>
+              )}
             </div>
             <button
               onClick={handleLogout}
